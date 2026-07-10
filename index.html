@@ -13,8 +13,7 @@
   ============================================================
 -->
 <script>
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwrx4tYolda-ENdlL0hbgZJ-Sw3MGkstqN1iU4g_v_HZiN4TG9a4qpQpIDVzkPvoC2__Q/exec
-";
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwrx4tYolda-ENdlL0hbgZJ-Sw3MGkstqN1iU4g_v_HZiN4TG9a4qpQpIDVzkPvoC2__Q/exec";
 </script>
 
 <style>
@@ -135,7 +134,7 @@
   <!-- ① 講師紹介 -->
   <div class="card">
     <h2><span class="section-num">1</span>講師紹介</h2>
-    <div class="sub">奥田のプロフィールと、今週の対応可能時間です</div>
+    <div class="sub">担当講師のプロフィールと、今週の対応可能時間です</div>
 
     <div id="profileView">
       <div class="profile-grid">
@@ -162,6 +161,11 @@
           <tr id="scheduleRow"></tr>
         </tbody>
       </table>
+
+      <div class="profile-item" style="margin-top:20px;">
+        <div class="label">備考</div>
+        <div class="value small" id="pNotes">―</div>
+      </div>
 
       <div class="edit-toggle"><button id="openEditBtn" type="button">講師プロフィールを編集する（先生用）</button></div>
     </div>
@@ -218,7 +222,7 @@
   const KEYS = { profile: "portal:profile", password: "portal:password" };
   const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
   const DAY_LABELS = { mon: "月", tue: "火", wed: "水", thu: "木", fri: "金", sat: "土", sun: "日" };
-  const blankProfile = { name: "", campus: "", courses: "", schedule: { mon: "", tue: "", wed: "", thu: "", fri: "", sat: "", sun: "" } };
+  const blankProfile = { name: "", campus: "", courses: "", notes: "", schedule: { mon: "", tue: "", wed: "", thu: "", fri: "", sat: "", sun: "" } };
 
   function apiConfigured() {
     return APPS_SCRIPT_URL && APPS_SCRIPT_URL.indexOf("PASTE_YOUR") !== 0;
@@ -270,6 +274,7 @@
     document.getElementById("pName").textContent = profile.name || "未登録";
     document.getElementById("pCampus").textContent = profile.campus || "未登録";
     document.getElementById("pCourses").textContent = profile.courses || "未登録";
+    document.getElementById("pNotes").textContent = profile.notes || "特になし";
     const row = document.getElementById("scheduleRow");
     row.innerHTML = "";
     DAYS.forEach((d) => {
@@ -323,6 +328,7 @@
       <div class="field"><label>名前</label><input id="fName" value="${p.name || ""}" /></div>
       <div class="field"><label>所属校舎</label><input id="fCampus" value="${p.campus || ""}" /></div>
       <div class="field"><label>担当講座（改行で複数可）</label><textarea id="fCourses" rows="3">${p.courses || ""}</textarea></div>
+      <div class="field"><label>備考（任意）</label><textarea id="fNotes" rows="3" placeholder="例）夏期講習中は時間が変則的になります">${p.notes || ""}</textarea></div>
       <div class="label" style="margin-bottom:8px;">対応可能時間（今週）</div>
       <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:16px;">
         ${DAYS.map((d) => `
@@ -343,6 +349,7 @@
         name: document.getElementById("fName").value.trim(),
         campus: document.getElementById("fCampus").value.trim(),
         courses: document.getElementById("fCourses").value,
+        notes: document.getElementById("fNotes").value,
         schedule: Object.fromEntries(DAYS.map((d) => [d, document.getElementById("sch_" + d).value.trim()])),
       };
       currentProfile = newProfile;
