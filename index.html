@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>創学ゼミ奥田クラス</title>
+<title>SOUGAKU OKDポータル(仮)</title>
 
 <!--
   ============================================================
@@ -88,11 +88,17 @@
   .contact-block{ font-size:13.5px; line-height:2; }
   .contact-block .cname{ font-weight:700; font-size:15px; margin-bottom:4px; }
 
-  .blog-post{ border-bottom:1px solid var(--line); padding:18px 0; }
+  .blog-post{ border-bottom:1px solid var(--line); padding:14px 0; }
   .blog-post:last-child{ border-bottom:none; }
   .blog-post .bdate{ font-size:11px; color:var(--ink-soft); font-family:'JetBrains Mono',monospace; margin-bottom:4px; }
-  .blog-post .btitle{ font-size:16px; font-weight:700; margin-bottom:8px; font-family:'Zen Old Mincho',serif; }
-  .blog-post .bbody{ font-size:13.5px; line-height:1.9; white-space:pre-wrap; color:var(--ink); }
+  .blog-post .btitle{ font-size:16px; font-weight:700; margin-bottom:0; font-family:'Zen Old Mincho',serif; }
+  .blog-post .bbody{ font-size:13.5px; line-height:1.9; white-space:pre-wrap; color:var(--ink); margin-top:12px; }
+  .blog-toggle{
+    width:100%; display:flex; align-items:center; justify-content:space-between; gap:12px;
+    background:none; border:none; padding:0; cursor:pointer; font-family:inherit; text-align:left;
+  }
+  .blog-chevron{ font-size:20px; color:var(--ink-soft); flex-shrink:0; transition:transform .15s ease; }
+  .blog-chevron.open{ transform:rotate(90deg); }
   .blog-edit-row{ border:1px solid var(--line); border-radius:4px; padding:12px; margin-bottom:10px; background:#FCFBF8; }
   .blog-edit-row .brow-top{ display:flex; gap:8px; margin-bottom:8px; }
   .blog-edit-row .brow-top input:first-child{ width:140px; flex-shrink:0; }
@@ -182,7 +188,7 @@
   <!-- ① 講師紹介 -->
   <div class="card">
     <h2><span class="section-num">1</span>講師紹介</h2>
-    <div class="sub">担当講師のプロフィールと、今週の対応可能時間です</div>
+    <div class="sub">プロフィールと、今週の対応可能時間です</div>
 
     <div id="profileView">
       <div class="profile-grid">
@@ -235,8 +241,8 @@
 
   <!-- 数学ブログ -->
   <div class="card">
-    <h2>ブログ</h2>
-    <div class="sub">奥田日々の授業や問題演習の中で感じたことを綴ります</div>
+    <h2>OKDブログ</h2>
+    <div class="sub">奥田が日々の授業や問題演習の中で感じたことを綴ります</div>
     <div id="blogView"><div style="color:var(--ink-soft); font-size:13px;">読み込み中…</div></div>
     <div class="edit-toggle"><button id="openBlogEditBtn" type="button">ブログを編集する（先生用）</button></div>
     <div id="blogEdit" style="display:none;"></div>
@@ -250,7 +256,7 @@
     <div class="course-group">
       <h3>《高３生科》</h3>
       <a class="course-link" href="https://kokuda-source.github.io/SOUGAKU_MATH_TEST/" target="_blank" rel="noreferrer">
-        <span class="name">高３ハイレベル数学</span>
+        <span class="name">高３ハイレベル理系数学</span>
         <span class="arrow">開く →</span>
       </a>
     </div>
@@ -533,6 +539,7 @@
   });
 
   let currentBlogPosts = [];
+  let openBlogIds = new Set();
 
   function renderBlogView(list) {
     const el = document.getElementById("blogView");
@@ -541,13 +548,28 @@
       return;
     }
     const sorted = [...list].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
-    el.innerHTML = sorted.map((post) => `
-      <div class="blog-post">
-        <div class="bdate">${esc(post.date || "")}</div>
-        <div class="btitle">${esc(post.title || "（無題）")}</div>
-        <div class="bbody">${esc(post.body || "")}</div>
-      </div>
-    `).join("");
+    el.innerHTML = sorted.map((post) => {
+      const isOpen = openBlogIds.has(post.id);
+      return `
+        <div class="blog-post">
+          <button class="blog-toggle" type="button" data-blog-toggle="${post.id}">
+            <div>
+              <div class="bdate">${esc(post.date || "")}</div>
+              <div class="btitle">${esc(post.title || "（無題）")}</div>
+            </div>
+            <span class="blog-chevron ${isOpen ? "open" : ""}">›</span>
+          </button>
+          ${isOpen ? `<div class="bbody">${esc(post.body || "")}</div>` : ""}
+        </div>
+      `;
+    }).join("");
+    el.querySelectorAll("[data-blog-toggle]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.getAttribute("data-blog-toggle");
+        if (openBlogIds.has(id)) openBlogIds.delete(id); else openBlogIds.add(id);
+        renderBlogView(currentBlogPosts);
+      });
+    });
     renderMath(el);
   }
 
