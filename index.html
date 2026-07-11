@@ -133,6 +133,16 @@
   .course-link .name{ font-weight:700; font-size:14.5px; }
   .course-link .arrow{ color:var(--ink-soft); flex-shrink:0; }
 
+  .material-category{ margin-bottom:14px; }
+  .material-category:last-child{ margin-bottom:0; }
+  .material-category .mcat-label{ font-weight:700; font-size:13px; margin-bottom:6px; }
+  .material-chip{
+    display:inline-flex; align-items:center; gap:4px; background:#F1EFE8; color:var(--ink-soft);
+    font-size:12px; padding:5px 12px; border-radius:14px; text-decoration:none; margin:0 6px 6px 0;
+  }
+  .material-chip:hover{ background:#E9E6DC; }
+  .material-chip.disabled{ opacity:.5; cursor:default; }
+
   .edit-toggle{ text-align:center; margin-top:8px; }
   .edit-toggle button{
     background:none; border:none; color:var(--ink-soft); font-size:12px; cursor:pointer;
@@ -319,6 +329,13 @@
     </div>
   </div>
 
+  <!-- 公開教材 -->
+  <div class="card">
+    <h2>公開教材</h2>
+    <div class="sub">公開している教材へのリンクです</div>
+    <div id="materialsView"></div>
+  </div>
+
   <!-- お問い合わせ -->
   <div class="card">
     <h2>お問い合わせ</h2>
@@ -326,7 +343,6 @@
       <div class="cname">創学ゼミ姫路校</div>
       <div>兵庫県姫路市東駅前町97</div>
       <div>電話番号：079-222-4359</div>
-       <div>創学ゼミ公式HP：https://www.sougaku.jp/</div>
     </div>
   </div>
 
@@ -359,6 +375,14 @@
       { id: "st5", label: "5ターム", range: "8/17〜8/22", content: "" },
       { id: "st6", label: "6ターム", range: "8/24〜8/29", content: "" },
       { id: "st7", label: "7ターム", range: "8/31〜9/3", content: "単発授業あり" },
+    ],
+    materials: [
+      { id: "mt1", subject: "数学", category: "基礎学習向け", unit: "", url: "" },
+      { id: "mt2", subject: "数学", category: "共通テストレベルマーク演習編", unit: "", url: "" },
+      { id: "mt3", subject: "数学", category: "阪大神大レベル記述対策編", unit: "", url: "" },
+      { id: "mt4", subject: "数学", category: "最難関大学対策編", unit: "", url: "" },
+      { id: "mt5", subject: "情報I", category: "知識問題穴埋めプリント", unit: "", url: "" },
+      { id: "mt6", subject: "情報I", category: "プログラミング問題演習プリント", unit: "", url: "" },
     ],
   };
 
@@ -479,6 +503,36 @@
           </tr>
         `).join("")
       : '<tr><td colspan="3" style="color:#BBB; text-align:center;">時間割は未登録です</td></tr>';
+
+    const materialsEl = document.getElementById("materialsView");
+    const materials = profile.materials || [];
+    if (!materials.length) {
+      materialsEl.innerHTML = '<div style="color:var(--ink-soft); font-size:13px;">まだ教材が登録されていません。</div>';
+    } else {
+      const subjects = Array.from(new Set(materials.map((m) => m.subject || "その他")));
+      materialsEl.innerHTML = subjects.map((subj) => {
+        const inSubject = materials.filter((m) => (m.subject || "その他") === subj);
+        const categories = Array.from(new Set(inSubject.map((m) => m.category || "その他")));
+        return `
+          <div class="course-group">
+            <h3>${esc(subj)}</h3>
+            ${categories.map((cat) => {
+              const items = inSubject.filter((m) => (m.category || "その他") === cat);
+              return `
+                <div class="material-category">
+                  <div class="mcat-label">${esc(cat)}</div>
+                  ${items.map((m) => (
+                    m.url
+                      ? `<a class="material-chip" href="${esc(m.url)}" target="_blank" rel="noreferrer">${esc(m.unit) || "リンクを開く"} →</a>`
+                      : `<span class="material-chip disabled">${esc(m.unit) || "準備中"}</span>`
+                  )).join("")}
+                </div>
+              `;
+            }).join("")}
+          </div>
+        `;
+      }).join("");
+    }
   }
 
   function renderApiWarning() {
@@ -807,6 +861,10 @@
       <div id="summerEditRows"></div>
       <div style="margin-bottom:20px;"><button class="btn ghost" id="addSummerRowBtn" type="button">＋ タームを追加</button></div>
 
+      <div class="label" style="margin-bottom:8px;">公開教材</div>
+      <div id="materialsEditRows"></div>
+      <div style="margin-bottom:20px;"><button class="btn ghost" id="addMaterialRowBtn" type="button">＋ 教材を追加</button></div>
+
       <div style="display:flex; gap:8px;">
         <button class="btn" id="saveProfileBtn">保存する</button>
         <button class="btn ghost" id="closeEditBtn">閉じる</button>
@@ -815,6 +873,7 @@
 
     let editingAchievements = JSON.parse(JSON.stringify(p.achievements || []));
     let editingSummerSchedule = JSON.parse(JSON.stringify(p.summerSchedule || []));
+    let editingMaterials = JSON.parse(JSON.stringify(p.materials || []));
 
     function renderAchieveRows() {
       const el = document.getElementById("achieveEditRows");
@@ -882,6 +941,56 @@
       renderSummerRows();
     };
 
+    function renderMaterialRows() {
+      const el = document.getElementById("materialsEditRows");
+      const knownSubjects = Array.from(new Set(editingMaterials.map((m) => m.subject).filter(Boolean)));
+      const knownCategories = Array.from(new Set(editingMaterials.map((m) => m.category).filter(Boolean)));
+      const datalists = `
+        <datalist id="mtSubjectOptions">${knownSubjects.map((s) => `<option value="${esc(s)}">`).join("")}</datalist>
+        <datalist id="mtCategoryOptions">${knownCategories.map((c) => `<option value="${esc(c)}">`).join("")}</datalist>
+      `;
+      if (!editingMaterials.length) {
+        el.innerHTML = datalists + '<div style="color:var(--ink-soft); font-size:12.5px; padding:6px 0 12px;">まだ教材が登録されていません。</div>';
+        return;
+      }
+      el.innerHTML = datalists + editingMaterials.map((m, i) => `
+        <div class="summer-edit-row">
+          <div class="srow-top">
+            <input type="text" data-mt-subject="${i}" value="${esc(m.subject || "")}" placeholder="例）数学" list="mtSubjectOptions" />
+            <input type="text" data-mt-category="${i}" value="${esc(m.category || "")}" placeholder="例）基礎学習向け" list="mtCategoryOptions" style="flex:1;" />
+            <button class="btn ghost" data-mt-del="${i}" style="padding:6px 10px; font-size:11.5px;">削除</button>
+          </div>
+          <div class="srow-top" style="margin-bottom:0;">
+            <input type="text" data-mt-unit="${i}" value="${esc(m.unit || "")}" placeholder="単元（例：二次関数）" style="flex:1; width:auto;" />
+            <input type="text" data-mt-url="${i}" value="${esc(m.url || "")}" placeholder="https://drive.google.com/..." style="flex:2; width:auto; padding:6px 8px; border:1px solid var(--line); border-radius:4px; font-size:12.5px; font-family:inherit;" />
+          </div>
+        </div>
+      `).join("");
+      el.querySelectorAll("[data-mt-subject]").forEach((input) => {
+        input.addEventListener("input", (e) => { editingMaterials[Number(e.target.getAttribute("data-mt-subject"))].subject = e.target.value; });
+      });
+      el.querySelectorAll("[data-mt-category]").forEach((input) => {
+        input.addEventListener("input", (e) => { editingMaterials[Number(e.target.getAttribute("data-mt-category"))].category = e.target.value; });
+      });
+      el.querySelectorAll("[data-mt-unit]").forEach((input) => {
+        input.addEventListener("input", (e) => { editingMaterials[Number(e.target.getAttribute("data-mt-unit"))].unit = e.target.value; });
+      });
+      el.querySelectorAll("[data-mt-url]").forEach((input) => {
+        input.addEventListener("input", (e) => { editingMaterials[Number(e.target.getAttribute("data-mt-url"))].url = e.target.value; });
+      });
+      el.querySelectorAll("[data-mt-del]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          editingMaterials.splice(Number(btn.getAttribute("data-mt-del")), 1);
+          renderMaterialRows();
+        });
+      });
+    }
+    renderMaterialRows();
+    document.getElementById("addMaterialRowBtn").onclick = () => {
+      editingMaterials.push({ id: "mt" + Date.now() + Math.random().toString(36).slice(2, 5), subject: "", category: "", unit: "", url: "" });
+      renderMaterialRows();
+    };
+
     let editingTimetable = JSON.parse(JSON.stringify(p.timetable || []));
 
     function renderTtRows() {
@@ -941,6 +1050,7 @@
         schedule: Object.fromEntries(DAYS.map((d) => [d, document.getElementById("sch_" + d).value.trim()])),
         achievements: editingAchievements.filter((a) => a.trim()),
         summerSchedule: editingSummerSchedule,
+        materials: editingMaterials,
       };
       currentProfile = newProfile;
       await safeSet(KEYS.profile, newProfile);
