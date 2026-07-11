@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>SOUGAKU OKDポータル(仮)</title>
+<title>創学ゼミ奥田クラス</title>
 
 <!--
   ============================================================
@@ -99,6 +99,23 @@
   }
   .blog-chevron{ font-size:20px; color:var(--ink-soft); flex-shrink:0; transition:transform .15s ease; }
   .blog-chevron.open{ transform:rotate(90deg); }
+
+  .achieve-list{ margin:0; padding-left:20px; font-size:13.5px; line-height:2; }
+  .achieve-list li{ margin-bottom:2px; }
+  .achieve-edit-row{ display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+  .achieve-edit-row input{ flex:1; }
+
+  table.summer{ width:100%; min-width:520px; border-collapse:collapse; }
+  table.summer th, table.summer td{ border:1px solid var(--line); padding:9px 10px; font-size:13px; text-align:left; vertical-align:top; }
+  table.summer th{ background:#F1EFE8; font-weight:700; color:var(--ink-soft); font-size:12px; white-space:nowrap; }
+  table.summer td.label{ font-weight:700; white-space:nowrap; }
+  table.summer td.range{ white-space:nowrap; font-family:'JetBrains Mono',monospace; font-size:12.5px; }
+  table.summer td.content{ white-space:pre-wrap; }
+  .summer-edit-row{ border:1px solid var(--line); border-radius:4px; padding:12px; margin-bottom:10px; background:#FCFBF8; }
+  .summer-edit-row .srow-top{ display:flex; gap:8px; margin-bottom:8px; }
+  .summer-edit-row .srow-top input:first-child{ width:110px; flex-shrink:0; }
+  .summer-edit-row .srow-top input:nth-child(2){ width:150px; flex-shrink:0; }
+  .summer-edit-row .srow-top button{ flex-shrink:0; }
   .blog-edit-row{ border:1px solid var(--line); border-radius:4px; padding:12px; margin-bottom:10px; background:#FCFBF8; }
   .blog-edit-row .brow-top{ display:flex; gap:8px; margin-bottom:8px; }
   .blog-edit-row .brow-top input:first-child{ width:140px; flex-shrink:0; }
@@ -239,6 +256,22 @@
     <div id="profileEdit" style="display:none;"></div>
   </div>
 
+  <!-- 指導実績 -->
+  <div class="card">
+    <h2>指導実績</h2>
+    <ul class="achieve-list" id="achieveView"></ul>
+  </div>
+
+  <!-- 夏期講習時間割 -->
+  <div class="card">
+    <h2>夏期講習時間割</h2>
+    <div class="sub">ターム制のスケジュールです（各タームは連続した講義日程になります）</div>
+    <div class="tbl-wrap"><table class="summer">
+      <thead><tr><th>ターム</th><th>期間</th><th>内容</th></tr></thead>
+      <tbody id="summerScheduleView"></tbody>
+    </table></div>
+  </div>
+
   <!-- 数学ブログ -->
   <div class="card">
     <h2>OKDブログ</h2>
@@ -307,7 +340,26 @@
   const KEYS = { profile: "portal:profile", password: "portal:password", announcements: "portal:announcements", blogposts: "portal:blogposts", lastUpdated: "portal:lastUpdated" };
   const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
   const DAY_LABELS = { mon: "月", tue: "火", wed: "水", thu: "木", fri: "金", sat: "土", sun: "日" };
-  const blankProfile = { name: "", campus: "", pastCampuses: "", courses: "", notes: "", timetable: [], schedule: { mon: "", tue: "", wed: "", thu: "", fri: "", sat: "", sun: "" } };
+  const blankProfile = {
+    name: "", campus: "", pastCampuses: "", courses: "", notes: "", timetable: [],
+    schedule: { mon: "", tue: "", wed: "", thu: "", fri: "", sat: "", sun: "" },
+    achievements: [
+      "数学・情報科を担当",
+      "大学受験指導（共通テスト・国公立二次・私立大学）",
+      "高校・大学主催講座への出講",
+      "オリジナル教材・演習プリントの作成",
+      "Web教材・成績閲覧システムの開発",
+    ],
+    summerSchedule: [
+      { id: "st1", label: "1ターム", range: "7/20〜7/25", content: "" },
+      { id: "st2", label: "2ターム", range: "7/27〜8/1", content: "" },
+      { id: "st3", label: "3ターム", range: "8/3〜8/8", content: "" },
+      { id: "st4", label: "4ターム", range: "8/10〜8/15", content: "" },
+      { id: "st5", label: "5ターム", range: "8/17〜8/22", content: "" },
+      { id: "st6", label: "6ターム", range: "8/24〜8/29", content: "" },
+      { id: "st7", label: "7ターム", range: "8/31〜9/3", content: "単発授業あり" },
+    ],
+  };
 
   function apiConfigured() {
     return APPS_SCRIPT_URL && APPS_SCRIPT_URL.indexOf("PASTE_YOUR") !== 0;
@@ -408,6 +460,24 @@
       if (!v) td.className = "na";
       row.appendChild(td);
     });
+
+    const achieveEl = document.getElementById("achieveView");
+    const achievements = profile.achievements || [];
+    achieveEl.innerHTML = achievements.length
+      ? achievements.map((a) => `<li>${esc(a)}</li>`).join("")
+      : '<li style="color:#BBB; list-style:none; margin-left:-20px;">まだ登録されていません</li>';
+
+    const summerEl = document.getElementById("summerScheduleView");
+    const summerSchedule = profile.summerSchedule || [];
+    summerEl.innerHTML = summerSchedule.length
+      ? summerSchedule.map((t) => `
+          <tr>
+            <td class="label">${esc(t.label || "")}</td>
+            <td class="range">${esc(t.range || "")}</td>
+            <td class="content">${t.content ? esc(t.content) : "―"}</td>
+          </tr>
+        `).join("")
+      : '<tr><td colspan="3" style="color:#BBB; text-align:center;">時間割は未登録です</td></tr>';
   }
 
   function renderApiWarning() {
@@ -727,11 +797,89 @@
         `).join("")}
       </div>
       </div>
+
+      <div class="label" style="margin-bottom:8px;">指導実績</div>
+      <div id="achieveEditRows"></div>
+      <div style="margin-bottom:20px;"><button class="btn ghost" id="addAchieveRowBtn" type="button">＋ 実績を追加</button></div>
+
+      <div class="label" style="margin-bottom:8px;">夏期講習時間割</div>
+      <div id="summerEditRows"></div>
+      <div style="margin-bottom:20px;"><button class="btn ghost" id="addSummerRowBtn" type="button">＋ タームを追加</button></div>
+
       <div style="display:flex; gap:8px;">
         <button class="btn" id="saveProfileBtn">保存する</button>
         <button class="btn ghost" id="closeEditBtn">閉じる</button>
       </div>
     `;
+
+    let editingAchievements = JSON.parse(JSON.stringify(p.achievements || []));
+    let editingSummerSchedule = JSON.parse(JSON.stringify(p.summerSchedule || []));
+
+    function renderAchieveRows() {
+      const el = document.getElementById("achieveEditRows");
+      if (!editingAchievements.length) {
+        el.innerHTML = '<div style="color:var(--ink-soft); font-size:12.5px; padding:6px 0 12px;">まだ実績が登録されていません。</div>';
+        return;
+      }
+      el.innerHTML = editingAchievements.map((a, i) => `
+        <div class="achieve-edit-row">
+          <input type="text" data-ach-idx="${i}" value="${esc(a)}" />
+          <button class="btn ghost" data-ach-del="${i}" style="padding:6px 10px; font-size:11.5px; flex-shrink:0;">削除</button>
+        </div>
+      `).join("");
+      el.querySelectorAll("[data-ach-idx]").forEach((input) => {
+        input.addEventListener("input", (e) => { editingAchievements[Number(e.target.getAttribute("data-ach-idx"))] = e.target.value; });
+      });
+      el.querySelectorAll("[data-ach-del]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          editingAchievements.splice(Number(btn.getAttribute("data-ach-del")), 1);
+          renderAchieveRows();
+        });
+      });
+    }
+    renderAchieveRows();
+    document.getElementById("addAchieveRowBtn").onclick = () => {
+      editingAchievements.push("");
+      renderAchieveRows();
+    };
+
+    function renderSummerRows() {
+      const el = document.getElementById("summerEditRows");
+      if (!editingSummerSchedule.length) {
+        el.innerHTML = '<div style="color:var(--ink-soft); font-size:12.5px; padding:6px 0 12px;">まだタームが登録されていません。</div>';
+        return;
+      }
+      el.innerHTML = editingSummerSchedule.map((t, i) => `
+        <div class="summer-edit-row">
+          <div class="srow-top">
+            <input type="text" data-sm-label="${i}" value="${esc(t.label || "")}" placeholder="例）1ターム" />
+            <input type="text" data-sm-range="${i}" value="${esc(t.range || "")}" placeholder="例）7/20〜7/25" />
+            <button class="btn ghost" data-sm-del="${i}" style="padding:6px 10px; font-size:11.5px;">削除</button>
+          </div>
+          <textarea data-sm-content="${i}" rows="2" placeholder="内容（校舎・講座名など）" style="width:100%; padding:8px; border:1px solid var(--line); border-radius:4px; font-size:12.5px; font-family:inherit;">${esc(t.content || "")}</textarea>
+        </div>
+      `).join("");
+      el.querySelectorAll("[data-sm-label]").forEach((input) => {
+        input.addEventListener("input", (e) => { editingSummerSchedule[Number(e.target.getAttribute("data-sm-label"))].label = e.target.value; });
+      });
+      el.querySelectorAll("[data-sm-range]").forEach((input) => {
+        input.addEventListener("input", (e) => { editingSummerSchedule[Number(e.target.getAttribute("data-sm-range"))].range = e.target.value; });
+      });
+      el.querySelectorAll("[data-sm-content]").forEach((ta) => {
+        ta.addEventListener("input", (e) => { editingSummerSchedule[Number(e.target.getAttribute("data-sm-content"))].content = e.target.value; });
+      });
+      el.querySelectorAll("[data-sm-del]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          editingSummerSchedule.splice(Number(btn.getAttribute("data-sm-del")), 1);
+          renderSummerRows();
+        });
+      });
+    }
+    renderSummerRows();
+    document.getElementById("addSummerRowBtn").onclick = () => {
+      editingSummerSchedule.push({ id: "st" + Date.now() + Math.random().toString(36).slice(2, 5), label: "", range: "", content: "" });
+      renderSummerRows();
+    };
 
     let editingTimetable = JSON.parse(JSON.stringify(p.timetable || []));
 
@@ -790,6 +938,8 @@
         notes: document.getElementById("fNotes").value,
         timetable: editingTimetable,
         schedule: Object.fromEntries(DAYS.map((d) => [d, document.getElementById("sch_" + d).value.trim()])),
+        achievements: editingAchievements.filter((a) => a.trim()),
+        summerSchedule: editingSummerSchedule,
       };
       currentProfile = newProfile;
       await safeSet(KEYS.profile, newProfile);
